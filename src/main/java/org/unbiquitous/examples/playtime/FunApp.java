@@ -1,23 +1,32 @@
 package org.unbiquitous.examples.playtime;
 
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.unbiquitous.uos.core.InitialProperties;
 import org.unbiquitous.uos.core.adaptabitilyEngine.Gateway;
+import org.unbiquitous.uos.core.adaptabitilyEngine.NotifyException;
 import org.unbiquitous.uos.core.adaptabitilyEngine.ServiceCallException;
+import org.unbiquitous.uos.core.adaptabitilyEngine.UosEventListener;
 import org.unbiquitous.uos.core.applicationManager.UosApplication;
 import org.unbiquitous.uos.core.driverManager.DriverData;
+import org.unbiquitous.uos.core.messageEngine.dataType.UpDevice;
 import org.unbiquitous.uos.core.messageEngine.messages.Call;
+import org.unbiquitous.uos.core.messageEngine.messages.Notify;
 import org.unbiquitous.uos.core.messageEngine.messages.Response;
 import org.unbiquitous.uos.core.ontologyEngine.api.OntologyDeploy;
 import org.unbiquitous.uos.core.ontologyEngine.api.OntologyStart;
 import org.unbiquitous.uos.core.ontologyEngine.api.OntologyUndeploy;
 
-public class FunApp implements UosApplication {
+public class FunApp implements UosApplication, UosEventListener {
 
 	private Gateway gateway;
 	private List<DriverData> pastSensors = new ArrayList<DriverData>();
+	private Set<UpDevice> knownCursors = new HashSet<UpDevice>();
 
 	public void init(OntologyDeploy arg0, InitialProperties arg1, String arg2) {
 	}
@@ -26,9 +35,45 @@ public class FunApp implements UosApplication {
 		this.gateway = gateway;
 		while(true){
 			printAllSensedTemperatureSensors();
+			checkCursors();
 		}
 	}
 
+	private void checkCursors() {
+		List<DriverData> cursors = gateway.listDrivers("uos_cursor");
+		if(!cursors.isEmpty()){
+			for (DriverData c : cursors) {
+				registerCursor(c);
+			}
+		}else{
+			System.out.println("No cursors");
+		}
+	}
+
+	private void registerCursor(DriverData c) {
+		if(!knownCursors.contains(c.getDevice())){
+			knownCursors.add(c.getDevice());
+			try {
+				System.out.println("Registering @ "+c.getDevice().getName());
+				gateway.register(this, c.getDevice(), "uos_cursor", "move");
+			} catch (NotifyException e) {
+				e.printStackTrace();
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public void handleEvent(Notify event) {
+		if(event.getEventKey() == "move"){
+			try {
+				Robot r = new Robot();
+				r.mouseMove((Integer)event.getParameter("x"), (Integer)event.getParameter("y"));
+			} catch (AWTException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+	
 	private void printAllSensedTemperatureSensors() {
 		List<DriverData> sensors = gateway.listDrivers("uos.temperature");
 		if(sensors.size() != pastSensors.size()){

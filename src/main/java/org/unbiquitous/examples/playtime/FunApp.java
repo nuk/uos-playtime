@@ -1,6 +1,7 @@
 package org.unbiquitous.examples.playtime;
 
 import java.awt.AWTException;
+import java.awt.GraphicsEnvironment;
 import java.awt.Robot;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -36,11 +37,16 @@ public class FunApp implements UosApplication, UosEventListener {
 		while(true){
 			printAllSensedTemperatureSensors();
 			checkCursors();
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
 	private void checkCursors() {
-		List<DriverData> cursors = gateway.listDrivers("uos_cursor");
+		List<DriverData> cursors = gateway.listDrivers("uos.cursor");
 		if(!cursors.isEmpty()){
 			for (DriverData c : cursors) {
 				registerCursor(c);
@@ -55,7 +61,7 @@ public class FunApp implements UosApplication, UosEventListener {
 			knownCursors.add(c.getDevice());
 			try {
 				System.out.println("Registering @ "+c.getDevice().getName());
-				gateway.register(this, c.getDevice(), "uos_cursor", "move");
+				gateway.register(this, c.getDevice(), "uos.cursor", "move");
 			} catch (NotifyException e) {
 				e.printStackTrace();
 				throw new RuntimeException(e);
@@ -64,11 +70,13 @@ public class FunApp implements UosApplication, UosEventListener {
 	}
 
 	public void handleEvent(Notify event) {
-		if(event.getEventKey() == "move"){
+		if("move".equalsIgnoreCase(event.getEventKey())){
 			try {
-				Robot r = new Robot();
+				Robot r = new Robot(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice());
+				System.out.println(String.format("Moving to (%s,%s)", (Integer)event.getParameter("x"), (Integer)event.getParameter("y")));
 				r.mouseMove((Integer)event.getParameter("x"), (Integer)event.getParameter("y"));
 			} catch (AWTException e) {
+				e.printStackTrace();
 				throw new RuntimeException(e);
 			}
 		}
@@ -90,7 +98,7 @@ public class FunApp implements UosApplication, UosEventListener {
 		try {
 			Call senseTemperature = new Call("uos.temperature", "current",
 					s.getInstanceID());
-			Response tempResponse = gateway.callService(null, senseTemperature);
+			Response tempResponse = gateway.callService(s.getDevice(), senseTemperature);
 			System.out.println(String.format("Sensor %s says its %s °C", s
 					.getDevice().getName(), tempResponse
 					.getResponseData("temperature")));

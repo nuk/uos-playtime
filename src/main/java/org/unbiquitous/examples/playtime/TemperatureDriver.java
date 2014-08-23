@@ -12,7 +12,7 @@ import org.unbiquitous.uos.core.messageEngine.messages.Response;
 
 public class TemperatureDriver implements UosDriver {
 
-	public void init(Gateway arg0, InitialProperties arg1, String arg2) {}
+	public void init(Gateway gateway, InitialProperties arg1, String arg2) {}
 
 	public UpDriver getDriver() {
 		UpDriver driver = new UpDriver("uos.temperature");

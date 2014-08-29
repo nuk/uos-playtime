@@ -1,7 +1,8 @@
 package org.unbiquitous.examples.playtime;
 
+import java.awt.Point;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -39,13 +40,12 @@ public class CursorDriver implements UosEventDriver{
 		frame.setTitle("Cursor Driver : "+id);
 		frame.setSize(800, 600);
 		frame.setVisible(true);
-		frame.addMouseMotionListener(new NotifierMouseAdapter(id));
+		frame.addMouseListener(new MouseNotifier(id));
 	}
 
 	public void destroy() {}
 
 	public void registerListener(Call call, Response arg1, CallContext ctx) {
-		System.out.println("Registering"+ctx.getCallerDevice());
 		listeners.add(ctx.getCallerDevice());
 	}
 
@@ -53,23 +53,28 @@ public class CursorDriver implements UosEventDriver{
 		listeners.remove(ctx.getCallerNetworkDevice());
 	}
 	
-	private final class NotifierMouseAdapter extends MouseMotionAdapter {
+	private final class MouseNotifier extends MouseAdapter {
 		private final String id;
+		Point start = new Point();
 
-		private NotifierMouseAdapter(String id) {
+		private MouseNotifier(String id) {
 			this.id = id;
 		}
 
+		public void mousePressed(MouseEvent e) {
+			start = e.getPoint();
+		}
+
 		@Override
-		public void mouseMoved(MouseEvent e) {
+		public void mouseReleased(MouseEvent e) {
 			Notify move = createEvent(id, e);
 			notifyListeners(move);
 		}
 
 		private Notify createEvent(final String id, MouseEvent e) {
 			Notify move = new Notify("move","uos.cursor", id);
-			move.addParameter("x", e.getXOnScreen());
-			move.addParameter("y", e.getYOnScreen());
+			move.addParameter("x", e.getX() - start.getX());
+			move.addParameter("y", e.getY() - start.getY());
 			return move;
 		}
 

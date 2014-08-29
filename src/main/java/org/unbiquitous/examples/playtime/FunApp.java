@@ -2,6 +2,8 @@ package org.unbiquitous.examples.playtime;
 
 import java.awt.AWTException;
 import java.awt.GraphicsEnvironment;
+import java.awt.MouseInfo;
+import java.awt.Point;
 import java.awt.Robot;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,7 +40,7 @@ public class FunApp implements UosApplication, UosEventListener {
 			printAllSensedTemperatureSensors();
 			checkCursors();
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(10*1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -52,7 +54,7 @@ public class FunApp implements UosApplication, UosEventListener {
 				registerCursor(c);
 			}
 		}else{
-			System.out.println("No cursors");
+			System.out.println("No cursors found yet");
 		}
 	}
 
@@ -60,7 +62,7 @@ public class FunApp implements UosApplication, UosEventListener {
 		if(!knownCursors.contains(c.getDevice())){
 			knownCursors.add(c.getDevice());
 			try {
-				System.out.println("Registering @ "+c.getDevice().getName());
+				System.out.println("Registering for cursors @ "+c.getDevice().getName());
 				gateway.register(this, c.getDevice(), "uos.cursor", "move");
 			} catch (NotifyException e) {
 				e.printStackTrace();
@@ -73,8 +75,8 @@ public class FunApp implements UosApplication, UosEventListener {
 		if("move".equalsIgnoreCase(event.getEventKey())){
 			try {
 				Robot r = new Robot(GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice());
-				System.out.println(String.format("Moving to (%s,%s)", (Integer)event.getParameter("x"), (Integer)event.getParameter("y")));
-				r.mouseMove((Integer)event.getParameter("x"), (Integer)event.getParameter("y"));
+				Point now = MouseInfo.getPointerInfo().getLocation();
+				r.mouseMove((Integer)event.getParameter("x")+now.x, (Integer)event.getParameter("y")+now.y);
 			} catch (AWTException e) {
 				e.printStackTrace();
 				throw new RuntimeException(e);
